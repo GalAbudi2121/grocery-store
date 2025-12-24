@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>ניהול המכולת - פאנל ניהול</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; padding: 20px; direction: rtl; text-align: center; }
+        .box { background: white; max-width: 600px; margin: auto; padding: 25px; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        input, select, button { width: 100%; padding: 12px; margin: 10px 0; border-radius: 8px; border: 1px solid #ddd; box-sizing: border-box; font-size: 1rem; }
+        button { background: #28a745; color: white; border: none; font-weight: bold; cursor: pointer; }
+        .danger { background: #dc3545; margin-top: 10px; }
+        
+        table { width: 100%; max-width: 900px; margin: 30px auto; border-collapse: collapse; background: white; border-radius: 10px; overflow: hidden; }
+        th, td { padding: 15px; border-bottom: 1px solid #eee; text-align: center; }
+        th { background: #28a745; color: white; }
+        .img-preview { width: 50px; height: 50px; object-fit: cover; border-radius: 5px; }
+    </style>
+</head>
+<body>
+
+<div class="box">
+    <h2>הוספת מוצר חדש 📦</h2>
+    <input type="text" id="pName" placeholder="שם המוצר">
+    <input type="number" id="pPrice" placeholder="מחיר ב-₪">
+    <input type="text" id="pImg" placeholder="קישור לתמונה">
+    
+    <label style="display:block; text-align:right; margin-top:10px;">בחר קטגוריה:</label>
+    <select id="pCategory">
+        <option value="מוצרי חלב וביצים">🥛 מוצרי חלב וביצים</option>
+        <option value="פירות, ירקות">🍎 פירות וירקות</option>
+        <option value="בשר, עוף ודגים">🥩 בשר, עוף ודגים</option>
+        <option value="לחמים ודגנים">🥖 לחמים ודגנים</option>
+        <option value="משקאות, יין, אלכוהול">🥤 משקאות</option>
+        <option value="חטיפי, מתוקים ודגני בוקר">🥨 חטיפים ומתוקים</option>
+        <option value="בישול, אפיה ושימורים">🥫 שימורים ובישול</option>
+        <option value="מוצרי טיפוח, ניקיון וחד פעמי">🧼 ניקיון וטיפוח</option>
+    </select>
+    
+    <button onclick="addProduct()">הוסף מוצר למדף</button>
+    <button class="danger" onclick="clearAll()">🗑️ מחק הכל (איפוס חנות)</button>
+</div>
+
+<h3>רשימת מוצרים קיימת</h3>
+<table>
+    <thead>
+        <tr>
+            <th>תמונה</th>
+            <th>שם</th>
+            <th>קטגוריה</th>
+            <th>מחיר</th>
+            <th>פעולה</th>
+        </tr>
+    </thead>
+    <tbody id="adminList"></tbody>
+</table>
+
+<script>
+    let products = JSON.parse(localStorage.getItem('myGroceries')) || [];
+
+    function addProduct() {
+        const name = document.getElementById('pName').value;
+        const price = document.getElementById('pPrice').value;
+        const img = document.getElementById('pImg').value || 'https://via.placeholder.com/150';
+        const category = document.getElementById('pCategory').value;
+
+        if(!name || !price) return alert("חובה למלא שם ומחיר!");
+
+        const newProduct = {
+            id: Date.now(),
+            name: name,
+            price: parseFloat(price),
+            img: img,
+            category: category,
+            inStock: true
+        };
+
+        products.push(newProduct);
+        saveAndRender();
+        
+        // ניקוי שדות
+        document.getElementById('pName').value = '';
+        document.getElementById('pPrice').value = '';
+        document.getElementById('pImg').value = '';
+    }
+
+    function render() {
+        const list = document.getElementById('adminList');
+        list.innerHTML = '';
+        products.forEach((p, index) => {
+            list.innerHTML += `
+                <tr>
+                    <td><img src="${p.img}" class="img-preview"></td>
+                    <td>${p.name}</td>
+                    <td>${p.category}</td>
+                    <td>₪${p.price}</td>
+                    <td><button class="danger" style="width:auto; padding:5px 10px;" onclick="deleteProduct(${index})">מחק</button></td>
+                </tr>
+            `;
+        });
+    }
+
+    function deleteProduct(index) {
+        if(confirm("למחוק את המוצר?")) {
+            products.splice(index, 1);
+            saveAndRender();
+        }
+    }
+
+    function clearAll() {
+        if(confirm("זה ימחק את כל המוצרים! בטוח?")) {
+            products = [];
+            saveAndRender();
+        }
+    }
+
+    function saveAndRender() {
+        localStorage.setItem('myGroceries', JSON.stringify(products));
+        render();
+    }
+
+    // הפעלה ראשונית
+    render();
+</script>
+</body>
+</html>
