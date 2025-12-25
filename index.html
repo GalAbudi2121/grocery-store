@@ -101,7 +101,10 @@
 </div>
 
 <script>
-    const products = JSON.parse(localStorage.getItem('myGroceries')) || [];
+    const products = JSON.parse(localStorage.getItem('myGroceries')) || [
+    {name: "מוצר בדיקה", price: 10, category: "הכל", img: "https://via.placeholder.com/150"}
+];
+    /*const products = JSON.parse(localStorage.getItem('myGroceries')) || [];*/
     let currentCategory = 'הכל';
     let cart = JSON.parse(localStorage.getItem('currentCart')) || [];
 
