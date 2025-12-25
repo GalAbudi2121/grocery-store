@@ -101,60 +101,66 @@
 </div>
 
 <script>
-// שים כאן את הקישור שהעתקת מגוגל שיטס (הקישור שמסתיים ב-csv)
+const sheetURL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vT_QLfJDu21iqfHVulf61qzu58iddSVl-soNcgq_8E29nd6DVWpDNlXUqMGKj46ArezsDmK314xPSCS/pub?output=csv';
 
 let products = [];
 let currentCategory = 'הכל';
 let cart = JSON.parse(localStorage.getItem('currentCart')) || [];
 
-// פונקציה שמושכת את הנתונים מהגוגל שיטס
-// הקישור המעודכן שלך (החלפתי בסוף ל-csv)
-const sheetURL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vT_QLfJDu21iqfHVulf61qzu58iddSVl-soNcgq_8E29nd6DVWpDNlXUqMGKj46ArezsDmK314xPSCS/pub?output=csv';
-
 async function loadProducts() {
     try {
-        const response = await fetch(sheetURL);
+        const response = await fetch(sheetURL + '&cachebust=' + Date.now());
         const data = await response.text();
         
-        // מפרק לשורות
+        // פירוק לפי שורות
         const rows = data.split(/\r?\n/).filter(row => row.trim() !== '');
         
+        // ניסיון פירוק לפי פסיק או נקודה-פסיק (גוגל ישראל)
         products = rows.slice(1).map(row => {
-            // התיקון הקריטי: מפצל לפי פסיק, נקודה-פסיק או טאב (\t)
-            const columns = row.split(/,|\t|;/); 
-            
-            // מנקה גרשיים מיותרים שגוגל מוסיף לפעמים
+            const columns = row.split(/,|;/); 
             const clean = (str) => str ? str.replace(/^"|"$/g, '').trim() : '';
-
             return {
                 name: clean(columns[0]),
                 price: parseFloat(clean(columns[1])),
-                category: clean(columns[2]),
-                img: clean(columns[3])
+                category: clean(columns[2]) || 'הכל',
+                img: clean(columns[3]) || 'https://via.placeholder.com/150'
             };
         }).filter(p => p.name && !isNaN(p.price));
 
-        console.log("נתונים גולמיים שהתקבלו:", data); // לבדיקה
-        console.log("מוצרים לאחר עיבוד:", products); 
+        // אם אחרי הכל אין מוצרים - נשים מוצרי גיבוי כדי לראות שהאתר חי
+        if (products.length === 0) {
+            console.log("No products found in sheet, loading defaults...");
+            products = [
+                { name: "חלב (בדיקה)", price: 6.5, category: "מוצרי חלב וביצים", img: "https://via.placeholder.com/150" },
+                { name: "לחם (בדיקה)", price: 8, category: "לחמים ודגנים", img: "https://via.placeholder.com/150" }
+            ];
+        }
+
         renderProducts();
     } catch (error) {
-        console.error("שגיאה בטעינה מהשיטס:", error);
+        console.error("Error loading products:", error);
+        // הצגת מוצרי גיבוי במקרה של שגיאה קריטית בחיבור
+        products = [{ name: "שגיאת חיבור - מוצר זמני", price: 0, category: "הכל", img: "" }];
+        renderProducts();
     }
 }
 
 function renderProducts(filterText = '') {
     const display = document.getElementById('productDisplay');
+    if (!display) return;
     display.innerHTML = '';
+    
     const filtered = products.filter(p => {
         const matchesSearch = p.name.toLowerCase().includes(filterText.toLowerCase());
-        const matchesCat = currentCategory === 'הכל' || p.category === currentCategory;
+        const matchesCat = currentCategory === 'הכל' || 
+                           (p.category && (p.category.includes(currentCategory) || currentCategory.includes(p.category)));
         return matchesSearch && matchesCat;
     });
 
     filtered.forEach(p => {
         display.innerHTML += `
             <div class="card">
-                <img src="${p.img}" alt="${p.name}">
+                <img src="${p.img}" alt="${p.name}" onerror="this.src='https://via.placeholder.com/150'">
                 <h4 style="margin:10px 0 5px 0;">${p.name}</h4>
                 <div class="price">₪${p.price}</div>
                 <button class="add-btn" onclick="addToCart('${p.name}', ${p.price})">הוסף</button>
@@ -163,8 +169,6 @@ function renderProducts(filterText = '') {
     });
     document.getElementById('cart-count').innerText = cart.length;
 }
-
-function filterProducts() { renderProducts(document.getElementById('searchInput').value); }
 
 function filterCategory(cat, btn) {
     currentCategory = cat;
@@ -179,7 +183,11 @@ function addToCart(name, price) {
     document.getElementById('cart-count').innerText = cart.length;
 }
 
-// הפעלה ראשונית
+function filterProducts() { 
+    renderProducts(document.getElementById('searchInput').value); 
+}
+
+// הפעלה
 loadProducts();
 </script>
 </body>
