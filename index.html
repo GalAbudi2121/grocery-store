@@ -101,7 +101,10 @@
 </div>
 
 <script>
-const sheetURL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vT_QLfJDu21iqfHVulf61qzu58iddSVl-soNcgq_8E29nd6DVWpDNlXUqMGKj46ArezsDmK314xPSCS/pub?output=csv';
+// ה-ID של הטבלה שלך מהקישור
+const sheetId = '1vT_QLfJDu21iqfHVulf61qzu58iddSVl-soNcgq_8E29nd6DVWpDNlXUqMGKj46ArezsDmK314xPSCS';
+// קישור לשאילתא ישירה שגוגל תמיד מאשר
+const sheetURL = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv`;
 
 let products = [];
 let currentCategory = 'הכל';
@@ -109,16 +112,15 @@ let cart = JSON.parse(localStorage.getItem('currentCart')) || [];
 
 async function loadProducts() {
     try {
-        const response = await fetch(sheetURL + '&cachebust=' + Date.now());
+        const response = await fetch(sheetURL);
         const data = await response.text();
         
-        // פיצול לפי שורות
-        const rows = data.split(/\r?\n/).filter(row => row.trim() !== '');
+        // פירוק השורות - גוגל מחזיר CSV עם גרשיים
+        const rows = data.split(/\r?\n/).slice(1);
         
-        products = rows.slice(1).map(row => {
-            // התיקון הקריטי: הקישור שלך משתמש ב-Tabs (\t) להפרדה
-            const columns = row.split('\t'); 
-            
+        products = rows.map(row => {
+            // פיצול חכם שמתחשב בגרשיים של גוגל
+            const columns = row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
             const clean = (str) => str ? str.replace(/^"|"$/g, '').trim() : '';
 
             return {
@@ -129,20 +131,21 @@ async function loadProducts() {
             };
         }).filter(p => p.name && !isNaN(p.price));
 
-        console.log("נטענו מוצרים:", products);
+        console.log("Products Loaded:", products);
         renderProducts();
     } catch (error) {
-        console.error("שגיאה:", error);
+        console.error("Connection Error:", error);
+        document.getElementById('productDisplay').innerHTML = "<h3>משהו השתבש בטעינה. נסה לרענן שוב.</h3>";
     }
 }
 
 function renderProducts(filterText = '') {
     const display = document.getElementById('productDisplay');
+    if (!display) return;
     display.innerHTML = '';
     
     const filtered = products.filter(p => {
         const matchesSearch = p.name.toLowerCase().includes(filterText.toLowerCase());
-        // בדיקה גמישה לקטגוריות
         const matchesCat = currentCategory === 'הכל' || 
                            p.category.includes(currentCategory) || 
                            currentCategory.includes(p.category);
@@ -179,6 +182,7 @@ function filterProducts() {
     renderProducts(document.getElementById('searchInput').value); 
 }
 
+// הפעלה
 loadProducts();
 </script>
 </body>
