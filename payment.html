@@ -44,13 +44,34 @@
         <button class="method-btn" id="btnCard" onclick="setMethod('אשראי')">💳 כרטיס אשראי</button>
     </div>
 
-    <div id="creditCardForm">
-        <input type="text" id="cardNumber" placeholder="מספר כרטיס (16 ספרות)" maxlength="16">
-        <div class="card-row">
-            <input type="text" id="cardExpiry" placeholder="תוקף (MM/YY)" maxlength="5">
-            <input type="text" id="cardCvv" placeholder="CVV" maxlength="3">
+    <div id="creditCardForm" style="display: none; background: #f8f9fa; padding: 20px; border-radius: 12px; margin-top: 15px; border: 1px solid #dee2e6; text-align: right;">
+    <div style="margin-bottom: 15px;">
+        <label style="font-size: 0.85rem; color: #555; display: block; margin-bottom: 5px;">מספר כרטיס</label>
+        <div style="position: relative;">
+            <input type="text" id="cardNumber" placeholder="**** **** **** ****" maxlength="19" 
+                   style="letter-spacing: 2px; font-family: monospace; padding-left: 45px;" 
+                   oninput="this.value = this.value.replace(/\D/g, '').replace(/(.{4})/g, '$1 ').trim()">
+            <span id="cardLogo" style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); font-size: 1.2rem;">💳</span>
         </div>
     </div>
+    
+    <div style="display: flex; gap: 15px;">
+        <div style="flex: 1;">
+            <label style="font-size: 0.85rem; color: #555; display: block; margin-bottom: 5px;">תוקף</label>
+            <input type="text" id="cardExpiry" placeholder="MM/YY" maxlength="5" 
+                   oninput="this.value = this.value.replace(/\D/g, '').replace(/(.{2})/, '$1/').replace('//', '/')">
+        </div>
+        <div style="flex: 1;">
+            <label style="font-size: 0.85rem; color: #555; display: block; margin-bottom: 5px;">CVV</label>
+            <input type="text" id="cardCvv" placeholder="3 ספרות" maxlength="3">
+        </div>
+    </div>
+    
+    <div style="margin-top: 15px;">
+        <label style="font-size: 0.85rem; color: #555; display: block; margin-bottom: 5px;">תעודת זהות בעל הכרטיס</label>
+        <input type="text" id="cardId" placeholder="מספר ת"ז" maxlength="9">
+    </div>
+</div>
 
     <div class="tip-container" id="tipArea">
         <span class="tip-label">פרגון לשליח? (אופציונלי)</span>
@@ -115,10 +136,13 @@
         
         if(!name || !addr || !paymentMethod) return alert("נא למלא פרטים ולבחור שיטת תשלום");
 
-        if(paymentMethod === 'אשראי') {
-            const cardNum = document.getElementById('cardNumber').value;
-            if(cardNum.length < 16) return alert("נא להזין מספר כרטיס תקין");
-        }
+        // החלף את הבדיקה הקודמת בזה:
+      if(paymentMethod === 'אשראי') {
+           const cardNum = document.getElementById('cardNumber').value.replace(/\s/g, ''); // מסיר רווחים
+         const cardId = document.getElementById('cardId').value;
+         if(cardNum.length < 16) return alert("נא להזין מספר כרטיס תקין");
+         if(cardId.length < 9) return alert("נא להזין תעודת זהות תקינה");
+       }
 
         let tipRaw = document.getElementById('tipInput').value.replace('₪', '').trim();
         const tip = parseFloat(tipRaw) || 0;
