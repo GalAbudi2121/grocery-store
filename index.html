@@ -112,55 +112,47 @@ async function loadProducts() {
         const response = await fetch(sheetURL + '&cachebust=' + Date.now());
         const data = await response.text();
         
-        // פירוק לפי שורות
+        // פיצול לפי שורות
         const rows = data.split(/\r?\n/).filter(row => row.trim() !== '');
         
-        // ניסיון פירוק לפי פסיק או נקודה-פסיק (גוגל ישראל)
         products = rows.slice(1).map(row => {
-            const columns = row.split(/,|;/); 
+            // התיקון הקריטי: הקישור שלך משתמש ב-Tabs (\t) להפרדה
+            const columns = row.split('\t'); 
+            
             const clean = (str) => str ? str.replace(/^"|"$/g, '').trim() : '';
+
             return {
                 name: clean(columns[0]),
                 price: parseFloat(clean(columns[1])),
                 category: clean(columns[2]) || 'הכל',
-                img: clean(columns[3]) || 'https://via.placeholder.com/150'
+                img: clean(columns[3]) || ''
             };
         }).filter(p => p.name && !isNaN(p.price));
 
-        // אם אחרי הכל אין מוצרים - נשים מוצרי גיבוי כדי לראות שהאתר חי
-        if (products.length === 0) {
-            console.log("No products found in sheet, loading defaults...");
-            products = [
-                { name: "חלב (בדיקה)", price: 6.5, category: "מוצרי חלב וביצים", img: "https://via.placeholder.com/150" },
-                { name: "לחם (בדיקה)", price: 8, category: "לחמים ודגנים", img: "https://via.placeholder.com/150" }
-            ];
-        }
-
+        console.log("נטענו מוצרים:", products);
         renderProducts();
     } catch (error) {
-        console.error("Error loading products:", error);
-        // הצגת מוצרי גיבוי במקרה של שגיאה קריטית בחיבור
-        products = [{ name: "שגיאת חיבור - מוצר זמני", price: 0, category: "הכל", img: "" }];
-        renderProducts();
+        console.error("שגיאה:", error);
     }
 }
 
 function renderProducts(filterText = '') {
     const display = document.getElementById('productDisplay');
-    if (!display) return;
     display.innerHTML = '';
     
     const filtered = products.filter(p => {
         const matchesSearch = p.name.toLowerCase().includes(filterText.toLowerCase());
+        // בדיקה גמישה לקטגוריות
         const matchesCat = currentCategory === 'הכל' || 
-                           (p.category && (p.category.includes(currentCategory) || currentCategory.includes(p.category)));
+                           p.category.includes(currentCategory) || 
+                           currentCategory.includes(p.category);
         return matchesSearch && matchesCat;
     });
 
     filtered.forEach(p => {
         display.innerHTML += `
             <div class="card">
-                <img src="${p.img}" alt="${p.name}" onerror="this.src='https://via.placeholder.com/150'">
+                <img src="${p.img}" alt="${p.name}" onerror="this.src='https://via.placeholder.com/150?text=No+Image'">
                 <h4 style="margin:10px 0 5px 0;">${p.name}</h4>
                 <div class="price">₪${p.price}</div>
                 <button class="add-btn" onclick="addToCart('${p.name}', ${p.price})">הוסף</button>
@@ -187,7 +179,6 @@ function filterProducts() {
     renderProducts(document.getElementById('searchInput').value); 
 }
 
-// הפעלה
 loadProducts();
 </script>
 </body>
