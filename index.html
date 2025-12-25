@@ -101,51 +101,86 @@
 </div>
 
 <script>
-    const products = JSON.parse(localStorage.getItem('myGroceries')) || [
-    {name: "מוצר בדיקה", price: 10, category: "הכל", img: "https://via.placeholder.com/150"}
-];
-    /*const products = JSON.parse(localStorage.getItem('myGroceries')) || [];*/
-    let currentCategory = 'הכל';
-    let cart = JSON.parse(localStorage.getItem('currentCart')) || [];
+// שים כאן את הקישור שהעתקת מגוגל שיטס (הקישור שמסתיים ב-csv)
 
-    function renderProducts(filterText = '') {
-        const display = document.getElementById('productDisplay');
-        display.innerHTML = '';
-        const filtered = products.filter(p => {
-            const matchesSearch = p.name.toLowerCase().includes(filterText.toLowerCase());
-            const matchesCat = currentCategory === 'הכל' || p.category === currentCategory;
-            return matchesSearch && matchesCat;
-        });
+let products = [];
+let currentCategory = 'הכל';
+let cart = JSON.parse(localStorage.getItem('currentCart')) || [];
 
-        filtered.forEach(p => {
-            display.innerHTML += `
-                <div class="card">
-                    <img src="${p.img}" alt="${p.name}">
-                    <h4 style="margin:10px 0 5px 0;">${p.name}</h4>
-                    <div class="price">₪${p.price}</div>
-                    <button class="add-btn" onclick="addToCart('${p.name}', ${p.price})">הוסף</button>
-                </div>
-            `;
-        });
-        document.getElementById('cart-count').innerText = cart.length;
-    }
+// פונקציה שמושכת את הנתונים מהגוגל שיטס
+// הקישור המעודכן שלך (החלפתי בסוף ל-csv)
+const sheetURL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vT_QLfJDu21iqfHVulf61qzu58iddSVl-soNcgq_8E29nd6DVWpDNlXUqMGKj46ArezsDmK314xPSCS/pub?output=csv';
 
-    function filterProducts() { renderProducts(document.getElementById('searchInput').value); }
+async function loadProducts() {
+    try {
+        const response = await fetch(sheetURL);
+        const data = await response.text();
+        
+        // מפרק לשורות
+        const rows = data.split(/\r?\n/).filter(row => row.trim() !== '');
+        
+        products = rows.slice(1).map(row => {
+            // התיקון הקריטי: מפצל לפי פסיק, נקודה-פסיק או טאב (\t)
+            const columns = row.split(/,|\t|;/); 
+            
+            // מנקה גרשיים מיותרים שגוגל מוסיף לפעמים
+            const clean = (str) => str ? str.replace(/^"|"$/g, '').trim() : '';
 
-    function filterCategory(cat, btn) {
-        currentCategory = cat;
-        document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
+            return {
+                name: clean(columns[0]),
+                price: parseFloat(clean(columns[1])),
+                category: clean(columns[2]),
+                img: clean(columns[3])
+            };
+        }).filter(p => p.name && !isNaN(p.price));
+
+        console.log("נתונים גולמיים שהתקבלו:", data); // לבדיקה
+        console.log("מוצרים לאחר עיבוד:", products); 
         renderProducts();
+    } catch (error) {
+        console.error("שגיאה בטעינה מהשיטס:", error);
     }
+}
 
-    function addToCart(name, price) {
-        cart.push({name, price, qty: 1});
-        localStorage.setItem('currentCart', JSON.stringify(cart));
-        document.getElementById('cart-count').innerText = cart.length;
-    }
+function renderProducts(filterText = '') {
+    const display = document.getElementById('productDisplay');
+    display.innerHTML = '';
+    const filtered = products.filter(p => {
+        const matchesSearch = p.name.toLowerCase().includes(filterText.toLowerCase());
+        const matchesCat = currentCategory === 'הכל' || p.category === currentCategory;
+        return matchesSearch && matchesCat;
+    });
 
+    filtered.forEach(p => {
+        display.innerHTML += `
+            <div class="card">
+                <img src="${p.img}" alt="${p.name}">
+                <h4 style="margin:10px 0 5px 0;">${p.name}</h4>
+                <div class="price">₪${p.price}</div>
+                <button class="add-btn" onclick="addToCart('${p.name}', ${p.price})">הוסף</button>
+            </div>
+        `;
+    });
+    document.getElementById('cart-count').innerText = cart.length;
+}
+
+function filterProducts() { renderProducts(document.getElementById('searchInput').value); }
+
+function filterCategory(cat, btn) {
+    currentCategory = cat;
+    document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
     renderProducts();
+}
+
+function addToCart(name, price) {
+    cart.push({name, price, qty: 1});
+    localStorage.setItem('currentCart', JSON.stringify(cart));
+    document.getElementById('cart-count').innerText = cart.length;
+}
+
+// הפעלה ראשונית
+loadProducts();
 </script>
 </body>
 </html>
